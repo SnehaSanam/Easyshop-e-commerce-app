@@ -11,76 +11,78 @@ data "aws_ami" "os_image" {
   }
 }
 
-resource "aws_key_pair" "deployer" {
-  key_name   = "terra-automate-key"
-  public_key = file("terra-key.pub")
+# Key Pair
+resource "aws_key_pair" "ec2-key" {
+  key_name   = "terra-key-easyshop"
+  public_key = file("terra-key-easyshop.pub")
 }
 
+#vpc
 resource "aws_default_vpc" "default" {
 
 }
 
-resource "aws_security_group" "allow_user_to_connect" {
-  name        = "allow TLS"
-  description = "Allow user to connect"
+# Security Group
+resource "aws_security_group" "my_security_group" {
+  name        = "easyshop-app-sg"
+  description = "This is security group"
   vpc_id      = aws_default_vpc.default.id
+
   ingress {
-    description = "port 22 allow"
     from_port   = 22
     to_port     = 22
-    protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
+    protocol    = "tcp"
+  }
+
+  ingress {
+    from_port   = 80
+    to_port     = 80
+    cidr_blocks = ["0.0.0.0/0"]
+    protocol    = "tcp"
+  }
+
+  ingress {
+    from_port   = 443
+    to_port     = 443
+    cidr_blocks = ["0.0.0.0/0"]
+    protocol    = "tcp"
+  }
+
+  ingress {
+    from_port   = 8080
+    to_port     = 8080
+    cidr_blocks = ["0.0.0.0/0"]
+    protocol    = "tcp"
   }
 
   egress {
-    description = " allow all outgoing traffic "
     from_port   = 0
-    to_port     = 0
+    to_port     = 0 
+    cidr_blocks = ["0.0.0.0/0"]
     protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  ingress {
-    description = "port 80 allow"
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  ingress {
-    description = "port 443 allow"
-    from_port   = 443
-    to_port     = 443
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  ingress {
-    description = "port 8080 allow"
-    from_port   = 8080
-    to_port     = 8080
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
   }
 
   tags = {
-    Name = "mysecurity"
+    Name        = "-easyshop-app-sg"
   }
 }
 
-resource "aws_instance" "testinstance" {
-  ami             = data.aws_ami.os_image.id
-  instance_type   = var.instance_type 
-  key_name        = aws_key_pair.deployer.key_name
-  security_groups = [aws_security_group.allow_user_to_connect.name]
-  user_data = file("${path.module}/install_tools.sh")
+#ec2 instance
+resource "aws_instance" "my_instance" {
+  ami           = data.aws_ami.os_image.id
+  instance_type = var.instance_type
+  key_name      = aws_key_pair.ec2-key.key_name
+  security_groups = [aws_security_group.my_security_group.name]
+  user_data = file("${path.module}/installtools.sh")
+
+ 
   tags = {
-    Name = "Jenkins-Automate"
+    Name        = "easyshop-app"
   }
+
   root_block_device {
-    volume_size = 20
+    volume_size = 30
     volume_type = "gp3"
-  }
-  
+  } 
 }
